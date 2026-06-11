@@ -39,9 +39,16 @@ public class Reminder {
     @Column(name = "snoozed_time")
     private Long snoozedTime;
 
-    @Column(name = "updated_at")
-    private Long updatedAt;
+    @Column(name = "created_at", nullable = false, updatable = false)
+    private java.time.Instant createdAt;
 
-    @Column(name = "deleted")
-    private Boolean deleted;
+    @Column(name = "updated_at", nullable = false)
+    private java.time.Instant updatedAt;
+
+    @Column(name = "deleted_at")
+    private java.time.Instant deletedAt;
+
+    @Column(name = "deleted", nullable = false)
+    @Builder.Default
+    private Boolean deleted = false;
 }
