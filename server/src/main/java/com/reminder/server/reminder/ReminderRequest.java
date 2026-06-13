@@ -20,4 +20,6 @@ public class ReminderRequest {
     private Boolean isExpired;
 
     private Long snoozedTime;
+
+    private String updatedAt;
 }

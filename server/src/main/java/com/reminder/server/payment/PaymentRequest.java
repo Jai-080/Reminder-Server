@@ -18,4 +18,6 @@ public class PaymentRequest {
 
     @NotNull(message = "Completed status is required")
     private Boolean completed;
+
+    private String updatedAt;
 }

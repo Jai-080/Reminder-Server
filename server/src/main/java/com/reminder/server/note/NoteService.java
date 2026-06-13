@@ -64,12 +64,32 @@ public class NoteService {
         QuickNote note = quickNoteRepository.findByIdAndUserIdAndDeletedFalse(id, user.getId())
                 .orElseThrow(() -> new ResourceNotFoundException("QuickNote not found with id: " + id));
 
-        note.setText(request.getText());
-        note.setIsCompleted(request.getIsCompleted());
-        note.setPosition(request.getPosition());
-        note.setUpdatedAt(Instant.now());
+        Instant incomingUpdatedAt = parseInstant(request.getUpdatedAt());
+        Instant existingUpdatedAt = note.getUpdatedAt();
 
-        return mapToResponse(quickNoteRepository.save(note));
+        if (incomingUpdatedAt.isAfter(existingUpdatedAt)) {
+            System.out.println("[LWW]\n" +
+                    "Entity=Note\n" +
+                    "Id=" + id + "\n" +
+                    "ServerUpdatedAt=" + existingUpdatedAt.toEpochMilli() + "\n" +
+                    "IncomingUpdatedAt=" + incomingUpdatedAt.toEpochMilli() + "\n" +
+                    "Decision=ACCEPTED");
+
+            note.setText(request.getText());
+            note.setIsCompleted(request.getIsCompleted());
+            note.setPosition(request.getPosition());
+            note.setUpdatedAt(incomingUpdatedAt);
+            return mapToResponse(quickNoteRepository.save(note));
+        } else {
+            System.out.println("[LWW]\n" +
+                    "Entity=Note\n" +
+                    "Id=" + id + "\n" +
+                    "ServerUpdatedAt=" + existingUpdatedAt.toEpochMilli() + "\n" +
+                    "IncomingUpdatedAt=" + incomingUpdatedAt.toEpochMilli() + "\n" +
+                    "Decision=REJECTED");
+
+            return mapToResponse(note);
+        }
     }
 
     @Transactional
@@ -91,5 +111,20 @@ public class NoteService {
                 .createdAt(note.getCreatedAt())
                 .updatedAt(note.getUpdatedAt())
                 .build();
+    }
+
+    private Instant parseInstant(String instantStr) {
+        if (instantStr == null || instantStr.isEmpty()) {
+            return Instant.now();
+        }
+        try {
+            return Instant.parse(instantStr);
+        } catch (Exception e) {
+            try {
+                return Instant.ofEpochMilli(Long.parseLong(instantStr));
+            } catch (Exception ex) {
+                return Instant.now();
+            }
+        }
     }
 }
