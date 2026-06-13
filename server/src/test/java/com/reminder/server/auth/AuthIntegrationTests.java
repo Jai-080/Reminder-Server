@@ -214,7 +214,7 @@ public class AuthIntegrationTests {
         // --- CHECK 12: CURRENT USER ENDPOINT `/api/auth/me` ---
         // Try unauthorized
         mockMvc.perform(get("/api/auth/me"))
-                .andExpect(status().isForbidden());
+                .andExpect(status().isUnauthorized());
 
         // Try authorized using the new refreshed access token
         mockMvc.perform(get("/api/auth/me")
@@ -227,12 +227,12 @@ public class AuthIntegrationTests {
         // --- CHECK 11: PROTECTED ENDPOINT ---
         // Case 1: No token
         mockMvc.perform(get("/api/test/protected"))
-                .andExpect(status().isForbidden());
+                .andExpect(status().isUnauthorized());
 
         // Case 2: Invalid token / Tampered token (Check 10)
         mockMvc.perform(get("/api/test/protected")
                         .header("Authorization", "Bearer " + refreshResponse.getAccessToken() + "tamper"))
-                .andExpect(status().isForbidden());
+                .andExpect(status().isUnauthorized());
 
         // Case 4: Valid token
         mockMvc.perform(get("/api/test/protected")
