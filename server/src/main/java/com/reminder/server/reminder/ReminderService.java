@@ -67,13 +67,33 @@ public class ReminderService {
         Reminder reminder = reminderRepository.findByIdAndUserIdAndDeletedFalse(id, user.getId())
                 .orElseThrow(() -> new ResourceNotFoundException("Reminder not found with id: " + id));
 
-        reminder.setText(request.getText());
-        reminder.setReminderTime(request.getReminderTime());
-        reminder.setIsExpired(request.getIsExpired());
-        reminder.setSnoozedTime(request.getSnoozedTime());
-        reminder.setUpdatedAt(Instant.now());
+        Instant incomingUpdatedAt = parseInstant(request.getUpdatedAt());
+        Instant existingUpdatedAt = reminder.getUpdatedAt();
 
-        return mapToResponse(reminderRepository.save(reminder));
+        if (incomingUpdatedAt.isAfter(existingUpdatedAt)) {
+            System.out.println("[LWW]\n" +
+                    "Entity=Reminder\n" +
+                    "Id=" + id + "\n" +
+                    "ServerUpdatedAt=" + existingUpdatedAt.toEpochMilli() + "\n" +
+                    "IncomingUpdatedAt=" + incomingUpdatedAt.toEpochMilli() + "\n" +
+                    "Decision=ACCEPTED");
+
+            reminder.setText(request.getText());
+            reminder.setReminderTime(request.getReminderTime());
+            reminder.setIsExpired(request.getIsExpired());
+            reminder.setSnoozedTime(request.getSnoozedTime());
+            reminder.setUpdatedAt(incomingUpdatedAt);
+            return mapToResponse(reminderRepository.save(reminder));
+        } else {
+            System.out.println("[LWW]\n" +
+                    "Entity=Reminder\n" +
+                    "Id=" + id + "\n" +
+                    "ServerUpdatedAt=" + existingUpdatedAt.toEpochMilli() + "\n" +
+                    "IncomingUpdatedAt=" + incomingUpdatedAt.toEpochMilli() + "\n" +
+                    "Decision=REJECTED");
+
+            return mapToResponse(reminder);
+        }
     }
 
     @Transactional
@@ -96,5 +116,20 @@ public class ReminderService {
                 .createdAt(reminder.getCreatedAt())
                 .updatedAt(reminder.getUpdatedAt())
                 .build();
+    }
+
+    private Instant parseInstant(String instantStr) {
+        if (instantStr == null || instantStr.isEmpty()) {
+            return Instant.now();
+        }
+        try {
+            return Instant.parse(instantStr);
+        } catch (Exception e) {
+            try {
+                return Instant.ofEpochMilli(Long.parseLong(instantStr));
+            } catch (Exception ex) {
+                return Instant.now();
+            }
+        }
     }
 }

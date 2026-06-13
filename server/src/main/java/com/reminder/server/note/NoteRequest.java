@@ -18,4 +18,6 @@ public class NoteRequest {
 
     @NotNull(message = "Position is required")
     private Integer position;
+
+    private String updatedAt;
 }

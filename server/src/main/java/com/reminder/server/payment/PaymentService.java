@@ -56,12 +56,32 @@ public class PaymentService {
         MonthlyPayment payment = monthlyPaymentRepository.findByIdAndUserIdAndDeletedFalse(id, user.getId())
                 .orElseThrow(() -> new ResourceNotFoundException("MonthlyPayment not found with id: " + id));
 
-        payment.setName(request.getName());
-        payment.setDueDate(request.getDueDate());
-        payment.setCompleted(request.getCompleted());
-        payment.setUpdatedAt(Instant.now());
+        Instant incomingUpdatedAt = parseInstant(request.getUpdatedAt());
+        Instant existingUpdatedAt = payment.getUpdatedAt();
 
-        return mapToResponse(monthlyPaymentRepository.save(payment));
+        if (incomingUpdatedAt.isAfter(existingUpdatedAt)) {
+            System.out.println("[LWW]\n" +
+                    "Entity=Payment\n" +
+                    "Id=" + id + "\n" +
+                    "ServerUpdatedAt=" + existingUpdatedAt.toEpochMilli() + "\n" +
+                    "IncomingUpdatedAt=" + incomingUpdatedAt.toEpochMilli() + "\n" +
+                    "Decision=ACCEPTED");
+
+            payment.setName(request.getName());
+            payment.setDueDate(request.getDueDate());
+            payment.setCompleted(request.getCompleted());
+            payment.setUpdatedAt(incomingUpdatedAt);
+            return mapToResponse(monthlyPaymentRepository.save(payment));
+        } else {
+            System.out.println("[LWW]\n" +
+                    "Entity=Payment\n" +
+                    "Id=" + id + "\n" +
+                    "ServerUpdatedAt=" + existingUpdatedAt.toEpochMilli() + "\n" +
+                    "IncomingUpdatedAt=" + incomingUpdatedAt.toEpochMilli() + "\n" +
+                    "Decision=REJECTED");
+
+            return mapToResponse(payment);
+        }
     }
 
     @Transactional
@@ -83,5 +103,20 @@ public class PaymentService {
                 .createdAt(payment.getCreatedAt())
                 .updatedAt(payment.getUpdatedAt())
                 .build();
+    }
+
+    private Instant parseInstant(String instantStr) {
+        if (instantStr == null || instantStr.isEmpty()) {
+            return Instant.now();
+        }
+        try {
+            return Instant.parse(instantStr);
+        } catch (Exception e) {
+            try {
+                return Instant.ofEpochMilli(Long.parseLong(instantStr));
+            } catch (Exception ex) {
+                return Instant.now();
+            }
+        }
     }
 }
