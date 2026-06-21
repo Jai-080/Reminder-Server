@@ -44,6 +44,10 @@ public class MonthlyPayment {
     @Builder.Default
     private RecurrenceType recurrence = RecurrenceType.MONTHLY;
 
+    @Column(name = "notification_offsets", nullable = false)
+    @Builder.Default
+    private String notificationOffsets = "0";
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private java.time.Instant createdAt;
 

@@ -48,6 +48,7 @@ public class PaymentService {
                 .completed(request.getCompleted())
                 .amount(request.getAmount())
                 .recurrence(request.getRecurrence() != null ? RecurrenceType.valueOf(request.getRecurrence().toUpperCase()) : RecurrenceType.MONTHLY)
+                .notificationOffsets(request.getNotificationOffsets() != null ? request.getNotificationOffsets() : "0")
                 .createdAt(now)
                 .updatedAt(now)
                 .deleted(false)
@@ -80,6 +81,9 @@ public class PaymentService {
             payment.setAmount(request.getAmount());
             if (request.getRecurrence() != null) {
                 payment.setRecurrence(RecurrenceType.valueOf(request.getRecurrence().toUpperCase()));
+            }
+            if (request.getNotificationOffsets() != null) {
+                payment.setNotificationOffsets(request.getNotificationOffsets());
             }
             payment.setUpdatedAt(incomingUpdatedAt);
             MonthlyPayment saved = monthlyPaymentRepository.save(payment);
@@ -116,6 +120,7 @@ public class PaymentService {
                 .completed(payment.getCompleted())
                 .amount(payment.getAmount())
                 .recurrence(payment.getRecurrence() != null ? payment.getRecurrence().name() : "MONTHLY")
+                .notificationOffsets(payment.getNotificationOffsets() != null ? payment.getNotificationOffsets() : "0")
                 .createdAt(payment.getCreatedAt())
                 .updatedAt(payment.getUpdatedAt())
                 .build();

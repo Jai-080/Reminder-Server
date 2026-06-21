@@ -23,5 +23,7 @@ public class PaymentRequest {
 
     private String recurrence;
 
+    private String notificationOffsets;
+
     private String updatedAt;
 }

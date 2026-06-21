@@ -14,6 +14,7 @@ public class PaymentResponse {
     private Boolean completed;
     private java.math.BigDecimal amount;
     private String recurrence;
+    private String notificationOffsets;
     private Instant createdAt;
     private Instant updatedAt;
 }
