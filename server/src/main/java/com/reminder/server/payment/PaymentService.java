@@ -2,6 +2,7 @@ package com.reminder.server.payment;
 
 import com.reminder.server.config.ResourceNotFoundException;
 import com.reminder.server.user.User;
+import com.reminder.server.websocket.WebSocketEventPublisher;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -17,6 +18,7 @@ import java.util.stream.Collectors;
 public class PaymentService {
 
     private final MonthlyPaymentRepository monthlyPaymentRepository;
+    private final WebSocketEventPublisher webSocketEventPublisher;
 
     public List<PaymentResponse> getAllPayments(User user) {
         return monthlyPaymentRepository.findByUserIdAndDeletedFalse(user.getId())
@@ -48,7 +50,10 @@ public class PaymentService {
                 .updatedAt(now)
                 .deleted(false)
                 .build();
-        return mapToResponse(monthlyPaymentRepository.save(payment));
+        MonthlyPayment saved = monthlyPaymentRepository.save(payment);
+        PaymentResponse response = mapToResponse(saved);
+        webSocketEventPublisher.publish("PAYMENT", "PAYMENT_CREATED", saved.getId(), user.getEmail(), saved.getUpdatedAt());
+        return response;
     }
 
     @Transactional
@@ -71,7 +76,9 @@ public class PaymentService {
             payment.setDueDate(request.getDueDate());
             payment.setCompleted(request.getCompleted());
             payment.setUpdatedAt(incomingUpdatedAt);
-            return mapToResponse(monthlyPaymentRepository.save(payment));
+            MonthlyPayment saved = monthlyPaymentRepository.save(payment);
+            webSocketEventPublisher.publish("PAYMENT", "PAYMENT_UPDATED", saved.getId(), user.getEmail(), saved.getUpdatedAt());
+            return mapToResponse(saved);
         } else {
             System.out.println("[LWW]\n" +
                     "Entity=Payment\n" +
@@ -91,7 +98,8 @@ public class PaymentService {
 
         payment.setDeleted(true);
         payment.setDeletedAt(Instant.now());
-        monthlyPaymentRepository.save(payment);
+        MonthlyPayment saved = monthlyPaymentRepository.save(payment);
+        webSocketEventPublisher.publish("PAYMENT", "PAYMENT_DELETED", id, user.getEmail(), saved.getDeletedAt());
     }
 
     private PaymentResponse mapToResponse(MonthlyPayment payment) {

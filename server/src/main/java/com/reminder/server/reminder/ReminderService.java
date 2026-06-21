@@ -2,6 +2,7 @@ package com.reminder.server.reminder;
 
 import com.reminder.server.config.ResourceNotFoundException;
 import com.reminder.server.user.User;
+import com.reminder.server.websocket.WebSocketEventPublisher;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -17,6 +18,7 @@ import java.util.stream.Collectors;
 public class ReminderService {
 
     private final ReminderRepository reminderRepository;
+    private final WebSocketEventPublisher webSocketEventPublisher;
 
     public List<ReminderResponse> getAllReminders(User user, Boolean expired) {
         List<Reminder> reminders;
@@ -59,7 +61,10 @@ public class ReminderService {
                 .updatedAt(now)
                 .deleted(false)
                 .build();
-        return mapToResponse(reminderRepository.save(reminder));
+        Reminder saved = reminderRepository.save(reminder);
+        ReminderResponse response = mapToResponse(saved);
+        webSocketEventPublisher.publish("REMINDER", "REMINDER_CREATED", saved.getId(), user.getEmail(), saved.getUpdatedAt());
+        return response;
     }
 
     @Transactional
@@ -83,7 +88,9 @@ public class ReminderService {
             reminder.setIsExpired(request.getIsExpired());
             reminder.setSnoozedTime(request.getSnoozedTime());
             reminder.setUpdatedAt(incomingUpdatedAt);
-            return mapToResponse(reminderRepository.save(reminder));
+            Reminder saved = reminderRepository.save(reminder);
+            webSocketEventPublisher.publish("REMINDER", "REMINDER_UPDATED", saved.getId(), user.getEmail(), saved.getUpdatedAt());
+            return mapToResponse(saved);
         } else {
             System.out.println("[LWW]\n" +
                     "Entity=Reminder\n" +
@@ -103,7 +110,8 @@ public class ReminderService {
 
         reminder.setDeleted(true);
         reminder.setDeletedAt(Instant.now());
-        reminderRepository.save(reminder);
+        Reminder saved = reminderRepository.save(reminder);
+        webSocketEventPublisher.publish("REMINDER", "REMINDER_DELETED", id, user.getEmail(), saved.getDeletedAt());
     }
 
     private ReminderResponse mapToResponse(Reminder reminder) {
