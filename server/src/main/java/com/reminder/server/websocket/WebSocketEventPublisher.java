@@ -12,19 +12,19 @@ import java.time.Instant;
 public class WebSocketEventPublisher {
     private final SimpMessagingTemplate messagingTemplate;
 
-    public void publish(String entityType, String operation, Long serverId, String username, Instant updatedAt) {
+    public void publish(String entityType, String operation, Long serverId, String email, Instant updatedAt) {
         SyncEvent event = SyncEvent.builder()
                 .entityType(entityType)
                 .operation(operation)
                 .serverId(serverId)
-                .username(username)
+                .username(email)
                 .updatedAt(updatedAt)
                 .build();
 
         log.info("WebSocket sync event published: user={}, eventType={}, entity={}, serverId={}, timestamp={}",
-                username, operation, entityType, serverId, updatedAt);
+                email, operation, entityType, serverId, updatedAt);
 
-        // Publish strictly to the user-specific channel
-        messagingTemplate.convertAndSendToUser(username, "/topic/sync", event);
+        // Publish strictly to the user-specific channel using email as the principal identifier
+        messagingTemplate.convertAndSendToUser(email, "/topic/sync", event);
     }
 }

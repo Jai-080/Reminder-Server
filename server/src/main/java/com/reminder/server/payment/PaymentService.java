@@ -52,7 +52,7 @@ public class PaymentService {
                 .build();
         MonthlyPayment saved = monthlyPaymentRepository.save(payment);
         PaymentResponse response = mapToResponse(saved);
-        webSocketEventPublisher.publish("PAYMENT", "PAYMENT_CREATED", saved.getId(), user.getUsername(), saved.getUpdatedAt());
+        webSocketEventPublisher.publish("PAYMENT", "PAYMENT_CREATED", saved.getId(), user.getEmail(), saved.getUpdatedAt());
         return response;
     }
 
@@ -77,7 +77,7 @@ public class PaymentService {
             payment.setCompleted(request.getCompleted());
             payment.setUpdatedAt(incomingUpdatedAt);
             MonthlyPayment saved = monthlyPaymentRepository.save(payment);
-            webSocketEventPublisher.publish("PAYMENT", "PAYMENT_UPDATED", saved.getId(), user.getUsername(), saved.getUpdatedAt());
+            webSocketEventPublisher.publish("PAYMENT", "PAYMENT_UPDATED", saved.getId(), user.getEmail(), saved.getUpdatedAt());
             return mapToResponse(saved);
         } else {
             System.out.println("[LWW]\n" +
@@ -99,7 +99,7 @@ public class PaymentService {
         payment.setDeleted(true);
         payment.setDeletedAt(Instant.now());
         MonthlyPayment saved = monthlyPaymentRepository.save(payment);
-        webSocketEventPublisher.publish("PAYMENT", "PAYMENT_DELETED", id, user.getUsername(), saved.getDeletedAt());
+        webSocketEventPublisher.publish("PAYMENT", "PAYMENT_DELETED", id, user.getEmail(), saved.getDeletedAt());
     }
 
     private PaymentResponse mapToResponse(MonthlyPayment payment) {

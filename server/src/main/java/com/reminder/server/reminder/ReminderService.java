@@ -63,7 +63,7 @@ public class ReminderService {
                 .build();
         Reminder saved = reminderRepository.save(reminder);
         ReminderResponse response = mapToResponse(saved);
-        webSocketEventPublisher.publish("REMINDER", "REMINDER_CREATED", saved.getId(), user.getUsername(), saved.getUpdatedAt());
+        webSocketEventPublisher.publish("REMINDER", "REMINDER_CREATED", saved.getId(), user.getEmail(), saved.getUpdatedAt());
         return response;
     }
 
@@ -89,7 +89,7 @@ public class ReminderService {
             reminder.setSnoozedTime(request.getSnoozedTime());
             reminder.setUpdatedAt(incomingUpdatedAt);
             Reminder saved = reminderRepository.save(reminder);
-            webSocketEventPublisher.publish("REMINDER", "REMINDER_UPDATED", saved.getId(), user.getUsername(), saved.getUpdatedAt());
+            webSocketEventPublisher.publish("REMINDER", "REMINDER_UPDATED", saved.getId(), user.getEmail(), saved.getUpdatedAt());
             return mapToResponse(saved);
         } else {
             System.out.println("[LWW]\n" +
@@ -111,7 +111,7 @@ public class ReminderService {
         reminder.setDeleted(true);
         reminder.setDeletedAt(Instant.now());
         Reminder saved = reminderRepository.save(reminder);
-        webSocketEventPublisher.publish("REMINDER", "REMINDER_DELETED", id, user.getUsername(), saved.getDeletedAt());
+        webSocketEventPublisher.publish("REMINDER", "REMINDER_DELETED", id, user.getEmail(), saved.getDeletedAt());
     }
 
     private ReminderResponse mapToResponse(Reminder reminder) {

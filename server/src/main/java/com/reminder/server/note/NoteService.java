@@ -60,7 +60,7 @@ public class NoteService {
                 .build();
         QuickNote saved = quickNoteRepository.save(note);
         NoteResponse response = mapToResponse(saved);
-        webSocketEventPublisher.publish("NOTE", "NOTE_CREATED", saved.getId(), user.getUsername(), saved.getUpdatedAt());
+        webSocketEventPublisher.publish("NOTE", "NOTE_CREATED", saved.getId(), user.getEmail(), saved.getUpdatedAt());
         return response;
     }
 
@@ -85,7 +85,7 @@ public class NoteService {
             note.setPosition(request.getPosition());
             note.setUpdatedAt(incomingUpdatedAt);
             QuickNote saved = quickNoteRepository.save(note);
-            webSocketEventPublisher.publish("NOTE", "NOTE_UPDATED", saved.getId(), user.getUsername(), saved.getUpdatedAt());
+            webSocketEventPublisher.publish("NOTE", "NOTE_UPDATED", saved.getId(), user.getEmail(), saved.getUpdatedAt());
             return mapToResponse(saved);
         } else {
             System.out.println("[LWW]\n" +
@@ -107,7 +107,7 @@ public class NoteService {
         note.setDeleted(true);
         note.setDeletedAt(Instant.now());
         QuickNote saved = quickNoteRepository.save(note);
-        webSocketEventPublisher.publish("NOTE", "NOTE_DELETED", id, user.getUsername(), saved.getDeletedAt());
+        webSocketEventPublisher.publish("NOTE", "NOTE_DELETED", id, user.getEmail(), saved.getDeletedAt());
     }
 
     private NoteResponse mapToResponse(QuickNote note) {
