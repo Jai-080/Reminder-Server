@@ -19,5 +19,9 @@ public class PaymentRequest {
     @NotNull(message = "Completed status is required")
     private Boolean completed;
 
+    private java.math.BigDecimal amount;
+
+    private String recurrence;
+
     private String updatedAt;
 }
