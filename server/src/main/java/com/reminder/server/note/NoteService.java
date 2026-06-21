@@ -2,6 +2,7 @@ package com.reminder.server.note;
 
 import com.reminder.server.config.ResourceNotFoundException;
 import com.reminder.server.user.User;
+import com.reminder.server.websocket.WebSocketEventPublisher;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -19,6 +20,7 @@ import java.util.stream.Collectors;
 public class NoteService {
 
     private final QuickNoteRepository quickNoteRepository;
+    private final WebSocketEventPublisher webSocketEventPublisher;
 
     public List<NoteResponse> getAllNotes(User user) {
         return quickNoteRepository.findByUserIdAndDeletedFalseOrderByPositionAsc(user.getId())
@@ -56,7 +58,10 @@ public class NoteService {
                 .updatedAt(now)
                 .deleted(false)
                 .build();
-        return mapToResponse(quickNoteRepository.save(note));
+        QuickNote saved = quickNoteRepository.save(note);
+        NoteResponse response = mapToResponse(saved);
+        webSocketEventPublisher.publish("NOTE", "NOTE_CREATED", saved.getId(), user.getUsername(), saved.getUpdatedAt());
+        return response;
     }
 
     @Transactional
@@ -79,7 +84,9 @@ public class NoteService {
             note.setIsCompleted(request.getIsCompleted());
             note.setPosition(request.getPosition());
             note.setUpdatedAt(incomingUpdatedAt);
-            return mapToResponse(quickNoteRepository.save(note));
+            QuickNote saved = quickNoteRepository.save(note);
+            webSocketEventPublisher.publish("NOTE", "NOTE_UPDATED", saved.getId(), user.getUsername(), saved.getUpdatedAt());
+            return mapToResponse(saved);
         } else {
             System.out.println("[LWW]\n" +
                     "Entity=Note\n" +
@@ -99,7 +106,8 @@ public class NoteService {
 
         note.setDeleted(true);
         note.setDeletedAt(Instant.now());
-        quickNoteRepository.save(note);
+        QuickNote saved = quickNoteRepository.save(note);
+        webSocketEventPublisher.publish("NOTE", "NOTE_DELETED", id, user.getUsername(), saved.getDeletedAt());
     }
 
     private NoteResponse mapToResponse(QuickNote note) {
