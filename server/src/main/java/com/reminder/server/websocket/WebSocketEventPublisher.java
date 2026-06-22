@@ -21,8 +21,19 @@ public class WebSocketEventPublisher {
                 .updatedAt(updatedAt)
                 .build();
 
-        log.info("WebSocket sync event published: user={}, eventType={}, entity={}, serverId={}, timestamp={}",
-                email, operation, entityType, serverId, updatedAt);
+        System.out.println("entityType: " + entityType);
+        log.info("entityType: " + entityType);
+        System.out.println("operation: " + operation);
+        log.info("operation: " + operation);
+        System.out.println("email: " + email);
+        log.info("email: " + email);
+        System.out.println("serverId: " + serverId);
+        log.info("serverId: " + serverId);
+        System.out.println("timestamp: " + updatedAt);
+        log.info("timestamp: " + updatedAt);
+        String destination = "/user/" + email + "/topic/sync";
+        System.out.println("destination: " + destination);
+        log.info("destination: " + destination);
 
         // Publish strictly to the user-specific channel using email as the principal identifier
         messagingTemplate.convertAndSendToUser(email, "/topic/sync", event);

@@ -36,6 +36,18 @@ public class MonthlyPayment {
     @Column(name = "completed")
     private Boolean completed;
 
+    @Column(name = "amount")
+    private java.math.BigDecimal amount;
+
+    @Column(name = "recurrence", nullable = false)
+    @Enumerated(EnumType.STRING)
+    @Builder.Default
+    private RecurrenceType recurrence = RecurrenceType.MONTHLY;
+
+    @Column(name = "notification_offsets", nullable = false)
+    @Builder.Default
+    private String notificationOffsets = "0";
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private java.time.Instant createdAt;
 
