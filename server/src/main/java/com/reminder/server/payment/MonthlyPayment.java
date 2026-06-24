@@ -36,6 +36,16 @@ public class MonthlyPayment {
     @Column(name = "completed")
     private Boolean completed;
 
+    @Column(name = "last_paid_at")
+    private Long lastPaidAt;
+
+    public Long getLastPaidAt() {
+        if (lastPaidAt == null && Boolean.TRUE.equals(completed)) {
+            return System.currentTimeMillis();
+        }
+        return lastPaidAt;
+    }
+
     @Column(name = "amount")
     private java.math.BigDecimal amount;
 

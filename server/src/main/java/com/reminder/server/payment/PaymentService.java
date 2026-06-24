@@ -46,6 +46,7 @@ public class PaymentService {
                 .name(request.getName())
                 .dueDate(request.getDueDate())
                 .completed(request.getCompleted())
+                .lastPaidAt(request.getLastPaidAt())
                 .amount(request.getAmount())
                 .recurrence(request.getRecurrence() != null ? RecurrenceType.valueOf(request.getRecurrence().toUpperCase()) : RecurrenceType.MONTHLY)
                 .notificationOffsets(request.getNotificationOffsets() != null ? request.getNotificationOffsets() : "0")
@@ -78,6 +79,7 @@ public class PaymentService {
             payment.setName(request.getName());
             payment.setDueDate(request.getDueDate());
             payment.setCompleted(request.getCompleted());
+            payment.setLastPaidAt(request.getLastPaidAt());
             payment.setAmount(request.getAmount());
             if (request.getRecurrence() != null) {
                 payment.setRecurrence(RecurrenceType.valueOf(request.getRecurrence().toUpperCase()));
@@ -118,6 +120,7 @@ public class PaymentService {
                 .name(payment.getName())
                 .dueDate(payment.getDueDate())
                 .completed(payment.getCompleted())
+                .lastPaidAt(payment.getLastPaidAt())
                 .amount(payment.getAmount())
                 .recurrence(payment.getRecurrence() != null ? payment.getRecurrence().name() : "MONTHLY")
                 .notificationOffsets(payment.getNotificationOffsets() != null ? payment.getNotificationOffsets() : "0")
