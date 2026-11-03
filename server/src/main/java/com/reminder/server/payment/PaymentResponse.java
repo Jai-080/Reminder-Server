@@ -1,5 +1,6 @@
 package com.reminder.server.payment;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.*;
 import java.time.Instant;
 
@@ -16,6 +17,13 @@ public class PaymentResponse {
     private java.math.BigDecimal amount;
     private String recurrence;
     private String notificationOffsets;
+
+    @JsonProperty("originalDueDay")
+    private Integer originalDueDay;
+
+    @JsonProperty("customIntervalDays")
+    private Integer customIntervalDays;
+
     private Instant createdAt;
     private Instant updatedAt;
 }

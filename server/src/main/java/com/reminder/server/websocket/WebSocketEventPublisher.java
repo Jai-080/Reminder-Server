@@ -1,5 +1,6 @@
 package com.reminder.server.websocket;
 
+import com.reminder.server.util.LoggingUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
@@ -21,19 +22,10 @@ public class WebSocketEventPublisher {
                 .updatedAt(updatedAt)
                 .build();
 
-        System.out.println("entityType: " + entityType);
-        log.info("entityType: " + entityType);
-        System.out.println("operation: " + operation);
-        log.info("operation: " + operation);
-        System.out.println("email: " + email);
-        log.info("email: " + email);
-        System.out.println("serverId: " + serverId);
-        log.info("serverId: " + serverId);
-        System.out.println("timestamp: " + updatedAt);
-        log.info("timestamp: " + updatedAt);
-        String destination = "/user/" + email + "/topic/sync";
-        System.out.println("destination: " + destination);
-        log.info("destination: " + destination);
+        log.info("[WS-PUBLISH] entityType={} operation={} serverId={} user={} timestamp={}",
+                entityType, operation, serverId, LoggingUtils.maskEmail(email), updatedAt);
+        log.info("[WS-PUBLISH] destination: {}",
+                LoggingUtils.maskDestination("/user/" + email + "/topic/sync"));
 
         // Publish strictly to the user-specific channel using email as the principal identifier
         messagingTemplate.convertAndSendToUser(email, "/topic/sync", event);

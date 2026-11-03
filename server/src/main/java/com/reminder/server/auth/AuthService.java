@@ -6,7 +6,9 @@ import com.reminder.server.security.CustomUserPrincipal;
 import com.reminder.server.security.JwtService;
 import com.reminder.server.user.User;
 import com.reminder.server.user.UserRepository;
+import com.reminder.server.util.LoggingUtils;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -20,6 +22,7 @@ import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class AuthService {
 
     private final UserRepository userRepository;
@@ -30,10 +33,15 @@ public class AuthService {
 
     @Transactional
     public AuthResponse register(RegisterRequest request) {
+        log.info("[AUTH] Register attempt for email='{}' username='{}' platform='{}' deviceName='{}'",
+                maskEmail(request.getEmail()), request.getUsername(), request.getPlatform(), request.getDeviceName());
+
         if (userRepository.findByEmail(request.getEmail()).isPresent()) {
+            log.warn("[AUTH] Register failed: EMAIL_ALREADY_EXISTS for email='{}'", maskEmail(request.getEmail()));
             throw new IllegalArgumentException("Email is already taken");
         }
         if (userRepository.findByUsername(request.getUsername()).isPresent()) {
+            log.warn("[AUTH] Register failed: USERNAME_ALREADY_EXISTS for username='{}'", request.getUsername());
             throw new IllegalArgumentException("Username is already taken");
         }
 
@@ -71,6 +79,9 @@ public class AuthService {
                 .build();
         refreshTokenRepository.save(refreshTokenEntity);
 
+        log.info("[AUTH] Register successful for userId={} username='{}' deviceId={}",
+                user.getId(), maskEmail(user.getUsername()), device.getId());
+
         return AuthResponse.builder()
                 .accessToken(accessToken)
                 .refreshToken(rawRefreshToken)
@@ -81,10 +92,17 @@ public class AuthService {
 
     @Transactional
     public AuthResponse login(LoginRequest request) {
+        log.info("[AUTH] Login attempt for identifier='{}' platform='{}' deviceName='{}'",
+                maskEmail(request.getEmail()), request.getPlatform(), request.getDeviceName());
+
         User user = userRepository.findByEmail(request.getEmail())
-                .orElseThrow(() -> new BadCredentialsException("Invalid credentials"));
+                .orElseThrow(() -> {
+                    log.warn("[AUTH] Login failed: USER_NOT_FOUND for identifier='{}'", maskEmail(request.getEmail()));
+                    return new BadCredentialsException("Invalid credentials");
+                });
 
         if (!passwordEncoder.matches(request.getPassword(), user.getPasswordHash())) {
+            log.warn("[AUTH] Login failed: BAD_CREDENTIALS for userId={} email='{}'", user.getId(), maskEmail(request.getEmail()));
             throw new BadCredentialsException("Invalid credentials");
         }
 
@@ -116,6 +134,9 @@ public class AuthService {
                 .build();
         refreshTokenRepository.save(refreshTokenEntity);
 
+        log.info("[AUTH] Login successful for userId={} username='{}' deviceId={} deviceName='{}' platform='{}'",
+                user.getId(), maskEmail(user.getUsername()), device.getId(), device.getDeviceName(), device.getPlatform());
+
         return AuthResponse.builder()
                 .accessToken(accessToken)
                 .refreshToken(rawRefreshToken)
@@ -127,10 +148,18 @@ public class AuthService {
     @Transactional
     public AuthResponse refresh(RefreshTokenRequest request) {
         String tokenHash = hashToken(request.getRefreshToken());
+        String hashPrefix = tokenHash.length() >= 8 ? tokenHash.substring(0, 8) : tokenHash;
+        log.info("[AUTH] Refresh token attempt (hashPrefix={})", hashPrefix);
+
         RefreshToken refreshTokenEntity = refreshTokenRepository.findByTokenHash(tokenHash)
-                .orElseThrow(() -> new IllegalArgumentException("Invalid or expired refresh token"));
+                .orElseThrow(() -> {
+                    log.warn("[AUTH] Refresh failed: TOKEN_NOT_FOUND (hashPrefix={})", hashPrefix);
+                    return new IllegalArgumentException("Invalid or expired refresh token");
+                });
 
         if (refreshTokenEntity.getExpiresAt().isBefore(Instant.now())) {
+            log.warn("[AUTH] Refresh failed: TOKEN_EXPIRED (hashPrefix={}, expiredAt={})",
+                    hashPrefix, refreshTokenEntity.getExpiresAt());
             refreshTokenRepository.delete(refreshTokenEntity);
             throw new IllegalArgumentException("Invalid or expired refresh token");
         }
@@ -154,6 +183,9 @@ public class AuthService {
                 .build();
         refreshTokenRepository.save(newRefreshTokenEntity);
 
+        log.info("[AUTH] Refresh token rotated: revoked old token (hashPrefix={}), issued new token for userId={} deviceId={}",
+                hashPrefix, user.getId(), device.getId());
+
         return AuthResponse.builder()
                 .accessToken(newAccessToken)
                 .refreshToken(newRawRefreshToken)
@@ -165,7 +197,10 @@ public class AuthService {
     @Transactional
     public void logout(RefreshTokenRequest request) {
         String tokenHash = hashToken(request.getRefreshToken());
+        String hashPrefix = tokenHash.length() >= 8 ? tokenHash.substring(0, 8) : tokenHash;
+        log.info("[AUTH] Logout attempt (hashPrefix={})", hashPrefix);
         refreshTokenRepository.deleteByTokenHash(tokenHash);
+        log.info("[AUTH] Logout completed: revoked refresh token (hashPrefix={})", hashPrefix);
     }
 
     private String hashToken(String token) {
@@ -182,5 +217,9 @@ public class AuthService {
         } catch (NoSuchAlgorithmException e) {
             throw new RuntimeException("SHA-256 algorithm not available", e);
         }
+    }
+
+    private String maskEmail(String email) {
+        return LoggingUtils.maskEmail(email);
     }
 }

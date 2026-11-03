@@ -5,6 +5,8 @@ import com.reminder.server.user.User;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.util.Calendar;
+
 @Entity
 @Table(name = "monthly_payments")
 @Getter
@@ -40,9 +42,6 @@ public class MonthlyPayment {
     private Long lastPaidAt;
 
     public Long getLastPaidAt() {
-        if (lastPaidAt == null && Boolean.TRUE.equals(completed)) {
-            return System.currentTimeMillis();
-        }
         return lastPaidAt;
     }
 
@@ -58,6 +57,12 @@ public class MonthlyPayment {
     @Builder.Default
     private String notificationOffsets = "0";
 
+    @Column(name = "original_due_day")
+    private Integer originalDueDay;
+
+    @Column(name = "custom_interval_days")
+    private Integer customIntervalDays;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private java.time.Instant createdAt;
 
@@ -70,4 +75,23 @@ public class MonthlyPayment {
     @Column(name = "deleted", nullable = false)
     @Builder.Default
     private Boolean deleted = false;
+
+    public int getEffectiveOriginalDueDay() {
+        if (originalDueDay != null && originalDueDay >= 1 && originalDueDay <= 31) {
+            return originalDueDay;
+        }
+        if (dueDate != null && dueDate > 0) {
+            Calendar cal = Calendar.getInstance();
+            cal.setTimeInMillis(dueDate);
+            return cal.get(Calendar.DAY_OF_MONTH);
+        }
+        return 1;
+    }
+
+    public int getEffectiveCustomIntervalDays() {
+        if (customIntervalDays != null && customIntervalDays > 0 && customIntervalDays <= 365) {
+            return customIntervalDays;
+        }
+        return 28;
+    }
 }

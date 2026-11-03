@@ -1,6 +1,7 @@
 package com.reminder.server.websocket;
 
 import com.reminder.server.security.JwtService;
+import com.reminder.server.util.LoggingUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Configuration;
@@ -67,9 +68,9 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
                     if (StompCommand.CONNECT.equals(command)) {
                         String token = null;
 
-                        // 1. Try native Authorization header
+                        // 1. Try native Authorization header (sanitized logging)
                         String authHeader = accessor.getFirstNativeHeader("Authorization");
-                        log.info("[WebSocketConfig] CONNECT Native Authorization header: {}", authHeader);
+                        log.info("[WebSocketConfig] CONNECT Native Authorization header present: {}", (authHeader != null));
                         if (authHeader != null && authHeader.startsWith("Bearer ")) {
                             token = authHeader.substring(7);
                         }
@@ -83,19 +84,18 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
                         // 3. Try query parameter extracted from handshake (fallback)
                         if (token == null || token.isEmpty()) {
                             Map<String, Object> sessionAttributes = accessor.getSessionAttributes();
-                            log.info("[WebSocketConfig] CONNECT SessionAttributes: {}", sessionAttributes);
                             if (sessionAttributes != null) {
                                 token = (String) sessionAttributes.get("token");
                                 log.info("[WebSocketConfig] CONNECT SessionAttributes token: {}", (token != null ? "present" : "null"));
                             }
                         }
 
-                        log.info("[WebSocketConfig] CONNECT Extracted token: {}", (token != null ? token.substring(0, Math.min(10, token.length())) + "..." : "null"));
+                        log.info("[WebSocketConfig] CONNECT Token present: {}", (token != null && !token.trim().isEmpty()));
 
                         if (token != null && !token.trim().isEmpty()) {
                             try {
                                 String username = jwtService.extractUsername(token);
-                                log.info("[WebSocketConfig] CONNECT Extracted username: {}", username);
+                                log.info("[WebSocketConfig] CONNECT Extracted username: {}", LoggingUtils.maskEmail(username));
                                 if (username != null) {
                                     UserDetails userDetails = userDetailsService.loadUserByUsername(username);
                                     boolean isValid = jwtService.isTokenValid(token, userDetails);
@@ -104,16 +104,16 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
                                         UsernamePasswordAuthenticationToken authentication =
                                                 new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
                                         accessor.setUser(authentication);
-                                        log.info("[WebSocketConfig] CONNECT User authenticated successfully as: {}", username);
+                                        log.info("[WebSocketConfig] CONNECT User authenticated successfully as: {}", LoggingUtils.maskEmail(username));
                                     } else {
-                                        log.warn("[WebSocketConfig] CONNECT Token is invalid for user: {}", username);
+                                        log.warn("[WebSocketConfig] CONNECT Token is invalid for user: {}", LoggingUtils.maskEmail(username));
                                         throw new MessageDeliveryException("Token is invalid/expired");
                                     }
                                 } else {
                                     throw new MessageDeliveryException("Invalid token payload");
                                 }
                             } catch (Exception e) {
-                                log.error("[WebSocketConfig] CONNECT Authentication failed with exception", e);
+                                log.error("[WebSocketConfig] CONNECT Authentication failed: {}", e.getMessage());
                                 if (e instanceof MessageDeliveryException) {
                                     throw (MessageDeliveryException) e;
                                 }
@@ -124,8 +124,8 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
                             throw new MessageDeliveryException("Missing token");
                         }
                     } else if (StompCommand.SUBSCRIBE.equals(command)) {
-                        log.info("[WebSocketConfig] SUBSCRIBE Destination: {}", accessor.getDestination());
-                        log.info("[WebSocketConfig] SUBSCRIBE User Principal: {}", accessor.getUser());
+                        log.info("[WebSocketConfig] SUBSCRIBE Destination: {}", LoggingUtils.maskDestination(accessor.getDestination()));
+                        log.info("[WebSocketConfig] SUBSCRIBE User Principal: {}", LoggingUtils.maskEmail(accessor.getUser() != null ? accessor.getUser().getName() : "anonymous"));
                         if (accessor.getUser() == null) {
                             log.warn("[WebSocketConfig] Rejecting unauthorized SUBSCRIBE request");
                             throw new MessageDeliveryException("Unauthorized subscription: principal is missing");
@@ -145,7 +145,7 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
             if (request instanceof ServletServerHttpRequest) {
                 ServletServerHttpRequest servletRequest = (ServletServerHttpRequest) request;
                 String token = servletRequest.getServletRequest().getParameter("token");
-                log.info("[HttpHandshakeInterceptor] Extracted query param token: {}", (token != null ? token.substring(0, Math.min(10, token.length())) + "..." : "null"));
+                log.info("[HttpHandshakeInterceptor] Extracted query param token present: {}", (token != null && !token.trim().isEmpty()));
                 if (token != null) {
                     attributes.put("token", token);
                 }
