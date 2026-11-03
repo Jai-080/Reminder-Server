@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration scan="true" scanPeriod="60 seconds">
+
+    <property name="LOG_DIR" value="${REMINDER_LOG_DIR:-logs}" />
+    <property name="LOG_FILE_PATH" value="${LOG_DIR}/reminder-server.log" />
+    <property name="LOG_PATTERN" value="%d{yyyy-MM-dd HH:mm:ss.SSS XXX} [%thread] %-5level %logger{36} [%X{correlationId}] - %msg%n%throwable" />
+
+    <!-- Console Appender -->
+    <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>${LOG_PATTERN}</pattern>
+            <charset>UTF-8</charset>
+        </encoder>
+    </appender>
+
+    <!-- Rolling File Appender -->
+    <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>${LOG_FILE_PATH}</file>
+        <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+            <fileNamePattern>${LOG_DIR}/reminder-server-%d{yyyy-MM-dd}.%i.log</fileNamePattern>
+            <maxFileSize>50MB</maxFileSize>
+            <maxHistory>30</maxHistory>
+            <totalSizeCap>3GB</totalSizeCap>
+        </rollingPolicy>
+        <encoder>
+            <pattern>${LOG_PATTERN}</pattern>
+            <charset>UTF-8</charset>
+        </encoder>
+    </appender>
+
+    <!-- Profile-specific loggers -->
+    <springProfile name="dev">
+        <logger name="com.reminder.server" level="DEBUG" />
+        <logger name="org.springframework.web" level="INFO" />
+        <logger name="org.springframework.security" level="DEBUG" />
+        <logger name="org.hibernate" level="WARN" />
+    </springProfile>
+
+    <springProfile name="!dev">
+        <logger name="com.reminder.server" level="INFO" />
+        <logger name="com.reminder.server.auth" level="DEBUG" />
+        <logger name="org.springframework.web" level="INFO" />
+        <logger name="org.springframework.security" level="INFO" />
+        <logger name="org.hibernate" level="WARN" />
+    </springProfile>
+
+    <!-- Root Logger -->
+    <root level="INFO">
+        <appender-ref ref="CONSOLE" />
+        <appender-ref ref="FILE" />
+    </root>
+
+</configuration>
+

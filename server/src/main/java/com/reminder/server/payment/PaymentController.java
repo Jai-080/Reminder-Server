@@ -56,6 +56,14 @@ public class PaymentController {
         return ResponseEntity.ok(paymentService.updatePayment(principal.getUser(), id, request));
     }
 
+    @PostMapping("/{id}/complete")
+    public ResponseEntity<PaymentResponse> completePayment(
+            @AuthenticationPrincipal CustomUserPrincipal principal,
+            @PathVariable Long id
+    ) {
+        return ResponseEntity.ok(paymentService.completePayment(principal.getUser(), id));
+    }
+
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deletePayment(
             @AuthenticationPrincipal CustomUserPrincipal principal,
